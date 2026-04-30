@@ -1,0 +1,30 @@
+# Labels are applied based on which paths changed in the PR.
+# When paths no longer match the label is removed automatically.
+
+'area:frontend':
+  - changed-files:
+    - any-glob-to-any-file: ['frontend/**']
+
+'area:backend':
+  - changed-files:
+    - any-glob-to-any-file: ['backend-api/**']
+
+'area:engine':
+  - changed-files:
+    - any-glob-to-any-file: ['engine/**']
+
+'area:security':
+  - changed-files:
+    - any-glob-to-any-file: ['security/**']
+
+'area:infra':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**'
+      - 'infrastructure/**'
+      - 'DevOps/**'
+      - 'docker-compose.yml'
+      - '**/Dockerfile'
+      - '**/*.dockerfile'
+      - '**/*.Dockerfile'
+      - 'tools/**'

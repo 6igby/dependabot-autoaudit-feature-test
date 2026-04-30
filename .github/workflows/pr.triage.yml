@@ -1,0 +1,97 @@
+name: PR Triage
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  # Applies area labels based on which paths changed in the PR.
+  # Labels are removed automatically if the paths no longer match.
+  area-labels:
+    name: Apply area labels
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/labeler.yml
+          sync-labels: true
+
+  # Adds or removes needs-tests, needs-docs and high-risk based on what changed.
+  # Re-evaluated on every push so labels stay current.
+  flag-labels:
+    name: Apply flag labels
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bootstrap labels (create if missing)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Creates each label if it does not exist, updates colour and description if it does
+          gh label create "needs-tests"  --color "E4E669" --description "No test files detected in this PR" --force
+          gh label create "needs-docs"   --color "0075CA" --description "Code changed but no docs updated"  --force
+          gh label create "high-risk"    --color "B60205" --description "Touches security, auth, migrations, or CI/CD" --force
+          gh label create "area:frontend"  --color "7057FF" --description "Affects the React frontend"     --force
+          gh label create "area:backend"   --color "008672" --description "Affects the backend API"        --force
+          gh label create "area:engine"    --color "E99695" --description "Affects the audit engine"       --force
+          gh label create "area:security"  --color "B60205" --description "Affects the security module"   --force
+          gh label create "area:infra"     --color "BFDADC" --description "Affects CI/CD or infrastructure" --force
+
+      - name: Compute and apply flag labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+
+          add_label()    { gh pr edit "$PR_NUMBER" --add-label    "$1" 2>/dev/null || true; }
+          remove_label() { gh pr edit "$PR_NUMBER" --remove-label "$1" 2>/dev/null || true; }
+
+          # needs-tests: flag if source files changed but no test files are included
+          SOURCE=$(echo "$FILES" | grep -E '\.(py|ts|tsx|js|jsx)$' \
+            | grep -vE '(test_|_test\.|\.test\.|\.spec\.|__tests__|/tests/)' \
+            | grep -vE '^docs/' || true)
+          TESTS=$(echo "$FILES" | grep -E \
+            '(test_|_test\.|\.test\.|\.spec\.|__tests__|/tests/)' || true)
+
+          if [ -n "$SOURCE" ] && [ -z "$TESTS" ]; then
+            echo "::notice::Adding needs-tests"
+            add_label "needs-tests"
+          else
+            remove_label "needs-tests"
+          fi
+
+          # needs-docs: flag if core code changed but no docs or markdown files were updated
+          CODE=$(echo "$FILES" | grep -E '^(backend-api|frontend/src|engine)/' || true)
+          DOCS=$(echo "$FILES" | grep -E '(^docs/|\.md$)' || true)
+
+          if [ -n "$CODE" ] && [ -z "$DOCS" ]; then
+            echo "::notice::Adding needs-docs"
+            add_label "needs-docs"
+          else
+            remove_label "needs-docs"
+          fi
+
+          # high-risk: flag if the diff touches security-sensitive paths or files
+          HIGH=$(echo "$FILES" | grep -iE \
+            '(^security/|auth|login|permission|token|secret|jwt|migration|alembic|\.github/workflows|docker-compose|^infrastructure/)' \
+            || true)
+
+          if [ -n "$HIGH" ]; then
+            echo "::notice::Adding high-risk, matched files:"
+            echo "$HIGH"
+            add_label "high-risk"
+          else
+            remove_label "high-risk"
+          fi
