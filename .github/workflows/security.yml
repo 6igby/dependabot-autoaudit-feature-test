@@ -18,7 +18,7 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -47,7 +47,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -78,7 +78,7 @@ jobs:
     if: github.event_name != 'push' || needs.changes.outputs.security == 'true'  
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -105,7 +105,7 @@ jobs:
 
 #    steps:
 #      - name: Checkout Source Code
-#        uses: actions/checkout@v4
+#        uses: actions/checkout@v6
 #        with:
 #          ref: ${{ github.ref }}
 

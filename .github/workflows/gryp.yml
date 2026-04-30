@@ -33,7 +33,7 @@ jobs:
     
     steps:
     - name: Check out the code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       
     - name: Build the Docker image
       run: docker build -t compliance-engine-workflows:latest -f docker/engine.Dockerfile .

@@ -19,7 +19,7 @@ jobs:
     outputs:
       engine: ${{ steps.filter.outputs.database }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Run Python script
         run: python /database/tprm_scanner/main.py
