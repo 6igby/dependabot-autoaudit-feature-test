@@ -17,6 +17,6 @@ plotly==5.5.0
 weasyprint==60.1
 python-docx==0.8.11
 python-nmap==0.7.1
-flask-sqlalchemy==2.5.1
+flask-sqlalchemy==3.1.1
 flask-socketio==5.3.6
 gevent-websocket==0.10.1
