@@ -1,0 +1,62 @@
+name: AutoAudit — OPA eval (CLI only)
+
+on:
+  push:
+    branches: [engine-development]
+  pull_request:
+  workflow_dispatch:
+
+# Read-only: workflow uploads artifacts only (no commits).
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    env:
+      # Opt into Node 24 for JS-based actions before the platform default flips (see GH changelog).
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install reportlab
+
+      - name: Install OPA CLI
+        run: |
+          curl -fsSL -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64_static
+          chmod +x opa && sudo mv opa /usr/local/bin/opa
+          command -v opa
+          opa version
+
+      - name: Run aggregator (CLI mode)
+        run: |
+          set -euo pipefail
+          python3 engine/legacy/engine/aggregator.py
+
+      - name: Convert JSON to PDF
+        run: |
+          set -euo pipefail
+          python3 engine/legacy/engine/json_to_pdf.py
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: autoaudit-report
+          path: engine/legacy/engine/autoaudit_report.pdf
+          if-no-files-found: error
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: autoaudit-reports
+          path: engine/legacy/engine/autoaudit_reports.json
+          if-no-files-found: error

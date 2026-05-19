@@ -1,0 +1,2 @@
+status=failure
+reason=no_recent_backup
